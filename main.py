@@ -25,8 +25,8 @@ def recording(stream):
     return frames
 
 def thread_process(nfile, p, frames, isSend):
-    filename = f'{SOUND_DIR}/{nfile}.wav'
-    sfilename = f'{SOUND_DIR}/{SEND_FILE_FLAG}{nfile}.wav'
+    filename = '{}/{}.wav'.format(SOUND_DIR, nfile)
+    sfilename = '{}/{}{}.wav'.format(SOUND_DIR, SEND_FILE_FLAG, nfile)
     write_wav(filename, p, frames)
     print(nfile)
     if isSend :
@@ -36,7 +36,7 @@ def thread_process(nfile, p, frames, isSend):
         inum = FILE_CYCLE + nfile + 1
         print(inum)
         for i in range(NUM_FILES_SEND):
-            with wave.open(f'{SOUND_DIR}/{(inum-NUM_FILES_SEND+i)%FILE_CYCLE}.wav', 'rb') as wavfile :
+            with wave.open('{}/{}.wav'.format(SOUND_DIR, (inum-NUM_FILES_SEND+i)%FILE_CYCLE), 'rb') as wavfile :
                 fileagg.append([wavfile.getparams(), wavfile.readframes(wavfile.getnframes())])
         # Write the contents as one file
         with wave.open(sfilename, 'wb') as output:
@@ -47,7 +47,7 @@ def thread_process(nfile, p, frames, isSend):
         # Send the aggregated single file
         send_wav(sfilename)
         etime = time()
-        print(f'thread process time: {etime-stime}s')
+        print('thread process time: {}s'.format(etime-stime))
 
 def write_wav(filename, p, frames):
     wf = wave.open(filename, 'wb')
@@ -62,7 +62,7 @@ def send_wav(filename):
     stime = time()
     res = requests.post(SERVER_URL, files={'file': sf})
     etime = time()
-    print(f'sending time: {etime-stime}')
+    print('sending time: {}'.format(etime-stime))
     result = json.loads(res.text)
     print(result)
 

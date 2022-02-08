@@ -5,38 +5,31 @@ import requests
 import json
 import os
 from time import time
-
-CHUNK = 1024
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 44100
-RECORD_SECONDS = 1
-FILE_CYCLE = 30
-NUM_FILES_SEND = 10
-SERVER_URL = 'http://api-2106.bs-soft.co.kr/v1/upload-analysis/'
-SOUND_DIR = './sound'
-SEND_FILE_FLAG = 'BS_TEST-'
+from utils.ini import config, mac
 
 def recording(stream):
     frames = []
-    for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-        data = stream.read(CHUNK)
+    for i in range(0, int(config['audio']['rate'] / config['audio']['chunk'] * config['audio']['record_seconds'])):
+        data = stream.read(config['audio']['chunk'])
         frames.append(data)
     return frames
 
 def thread_process(nfile, p, frames, isSend):
-    filename = '{}/{}.wav'.format(SOUND_DIR, nfile)
-    sfilename = '{}/{}{}.wav'.format(SOUND_DIR, SEND_FILE_FLAG, nfile)
-    write_wav(filename, p, frames)
+    ''' 
+    Aggregate/Write and Send Sound File
+    '''
+    filename = '{}/{}.wav'.format(config['files']['sound_dir'], nfile)
+    sfilename = '{}/{}{}.wav'.format(config['files']['sound_dir'], config['files']['send_name_flag'], nfile)
+    aggregate_wav(filename, p, frames)
     print(nfile)
     if isSend :
         stime = time()
         # Aggregate the files' contents
         fileagg = []
-        inum = FILE_CYCLE + nfile + 1
+        inum = config['files']['num_save'] + nfile + 1
         print(inum)
-        for i in range(NUM_FILES_SEND):
-            with wave.open('{}/{}.wav'.format(SOUND_DIR, (inum-NUM_FILES_SEND+i)%FILE_CYCLE), 'rb') as wavfile :
+        for i in range(config['files']['num_sending_bundle']):
+            with wave.open('{}/{}.wav'.format(config['files']['sound_dir'], (inum-config['files']['num_sending_bundle']+i)%config['files']['num_save']), 'rb') as wavfile :
                 fileagg.append([wavfile.getparams(), wavfile.readframes(wavfile.getnframes())])
         # Write the contents as one file
         with wave.open(sfilename, 'wb') as output:
@@ -49,43 +42,44 @@ def thread_process(nfile, p, frames, isSend):
         etime = time()
         print('thread process time: {}s'.format(etime-stime))
 
-def write_wav(filename, p, frames):
+def aggregate_wav(filename, p, frames):
     wf = wave.open(filename, 'wb')
-    wf.setnchannels(CHANNELS)
-    wf.setsampwidth(p.get_sample_size(FORMAT))
-    wf.setframerate(RATE)
+    wf.setnchannels(config['audio']['channels'])
+    wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+    wf.setframerate(config['audio']['rate'])
     wf.writeframes(b''.join(frames))
     wf.close()
 
 def send_wav(filename):
     sf = open(filename, 'rb')
     stime = time()
-    res = requests.post(SERVER_URL, files={'file': sf})
+    res = requests.post(config['files']['send_url'], files={'file': sf})
     etime = time()
     print('sending time: {}'.format(etime-stime))
     result = json.loads(res.text)
     print(result)
 
 if __name__ == '__main__':
-    if not(os.path.isdir(SOUND_DIR)):
-        os.mkdir(SOUND_DIR)
+    if not(os.path.isdir(config['files']['sound_dir'])):
+        os.mkdir(config['files']['sound_dir'])
+    config['files']['num_sending_bundle'] = config['files']['num_sending_seconds']//config['audio']['record_seconds']
     p = pyaudio.PyAudio()
-    stream = p.open(format=FORMAT,
-                channels=CHANNELS,
-                rate=RATE,
+    stream = p.open(format=pyaudio.paInt16,
+                channels=config['audio']['channels'],
+                rate=config['audio']['rate'],
                 input=True,
-                frames_per_buffer=CHUNK)
+                frames_per_buffer=config['audio']['chunk'])
     nfile = 0
     isSend = False
     while(True):
-        if nfile == NUM_FILES_SEND-1:
+        if nfile == config['files']['num_sending_bundle']-1:
             isSend = True
-        # Record sound with duration of RECORD_SECONDS
+        # Record sound with duration of config['audio']['record_seconds']
         record = recording(stream)
-        # Aggregate NUM_FILES_SEND files, and send it
+        # Aggregate config['files']['num_sending_bundle'] files, and send it
         _thread.start_new_thread(thread_process, (nfile, p, record, isSend)) 
         nfile = nfile + 1
-        if nfile == FILE_CYCLE :
+        if nfile == config['files']['num_save'] :
             nfile = 0
 
     stream.stop_stream()

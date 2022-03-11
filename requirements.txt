@@ -1,2 +1,5 @@
 pyaudio
 requests
+RPi.GPIO
+spidev
+pyalsaaudio

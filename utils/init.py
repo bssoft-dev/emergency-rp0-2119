@@ -12,17 +12,16 @@ config['audio']['channels'] = int(config['audio']['channels'])
 config['audio']['rate'] = int(config['audio']['rate'])
 config['audio']['record_seconds'] = int(config['audio']['record_seconds'])
 config['files']['num_save'] = int(config['files']['num_save'])
-config['files']['num_sending_seconds'] = int(config['files']['num_sending_seconds'])
+config['files']['sending_record_seconds'] = int(config['files']['sending_record_seconds'])
+config['smartbell']['heartbeat_interval'] = int(config['smartbell']['heartbeat_interval'])
 
 # Calc num_sending_bundle
-config['files']['num_sending_bundle'] = config['files']['num_sending_seconds']//config['audio']['record_seconds']
+config['files']['num_sending_bundle'] = config['files']['sending_record_seconds']//config['audio']['record_seconds']
 
 # Obtain mac_address
 addr = subprocess.Popen(('ip','address'), stdout=subprocess.PIPE)
 res_text = addr.stdout.read(-1).decode('utf-8')
 res_ether = [i for i in res_text.split('\n') if 'ether' in i]
-mac = res_ether[-1].split(' ')[5]
-print(mac)
-
+mac = res_ether[-1].split(' ')[5].replace(':','')
 
 

@@ -1,37 +1,55 @@
 import pyaudio, alsaaudio
 import _thread
-import os
+import os, subprocess
 from time import sleep
 
 import requests
+
 from utils.pixels import welcome_light
 from utils.init import config, mac
+from utils.playwav import play_wav
 import wav_packaging
 
-def recording(stream):
-    frames = []
-    # Append Audio Stream for the Targeted Recording Time
-    for i in range(0, int(config['audio']['rate'] / config['audio']['chunk'] * config['audio']['record_seconds'])):
-        data = stream.read(config['audio']['chunk']) # Read Audio Stream with Targeted Chunk Bytes
-        frames.append(data)
+import RPi.GPIO as GPIO
+
+BUTTON = 17
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(BUTTON, GPIO.IN)
+
+def button_callback():
+    while True:
+        state = GPIO.input(BUTTON)
+        if not (state): # button is pressed
+            play_wav(config['smartbell']['alarm_wav'])
+        sleep(0.1)
+
+def recording(frames,stream):
+    # Read Audio Stream for the Targeted Recording Time
+    for i in range(len(frames)):
+        frames[i] = stream.read(config['audio']['chunk']) # Read Audio Stream with Targeted Chunk Bytes
     return frames
 
 def heartbeat(mac):
+    print('mac address: %s'%mac)
     while True:
-        res = requests.get('{}/{}/heartbeat'.format(config['device']['heartbeat_url'], mac))
+        res = requests.get('{}/{}/heartbeat'.format(config['smartbell']['heartbeat_url'], mac))
         if res.status_code != 200:
             print('Heartbeat Error')
-        sleep(int(config['device']['heartbeat_interval']))
+        sleep(config['smartbell']['heartbeat_interval'])
 
 if __name__ == '__main__':
     # Initialize the directory
     os.makedirs(config['files']['sound_dir'], exist_ok=True)
+
     # Set Alarm Volume
     m = alsaaudio.Mixer(control='Playback', cardindex=1)
-    m.setvolume(int(config['device']['volume'])) # Set the volume to 70%.
+    m.setvolume(int(config['smartbell']['volume'])) # Set the volume to 70%.
     # current_volume = m.getvolume() # Get the current Volume
-    # Welcome Light
+
+    # Start Welcome Light
     _thread.start_new_thread(welcome_light, ())
+
     # Initialize the PyAudio
     p = pyaudio.PyAudio()
     stream = p.open(format=pyaudio.paInt16,
@@ -39,23 +57,41 @@ if __name__ == '__main__':
                 rate=config['audio']['rate'],
                 input=True,
                 frames_per_buffer=config['audio']['chunk'])
-    nfile = 0
-    isSend = False
+    audioSampleSize = p.get_sample_size(pyaudio.paInt16)
 
+    # Start Heartbeat Thread
     _thread.start_new_thread(heartbeat, (mac,))
 
-    # Main Loop
-    while(True):
-        if nfile == config['files']['num_sending_bundle']-1:
-            isSend = True
-        # Record sound with duration of config['audio']['record_seconds']
-        record = recording(stream)
-        # Aggregate num_sending_bundle files, and send it to the ml server
-        _thread.start_new_thread(wav_packaging.process, (nfile, p, record, isSend)) 
-        nfile = nfile + 1
-        if nfile == config['files']['num_save'] :
-            nfile = 0
+    # Start Button Callback Thread
+    _thread.start_new_thread(button_callback, ())
 
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
+    # Main Loop
+    nfile = 0
+    isSend = False
+    nFrame = int(config['audio']['rate'] / config['audio']['chunk'] * config['audio']['record_seconds'])
+    nBundle = config['files']['num_sending_bundle']
+    record_frames = [b'']*nFrame # Initialize nFrame length empty byte array
+    send_frames = [b'']*(nFrame*nBundle) # Initialize nFrame*num_sending_bundle length empty byte array
+    while(True):
+        try:
+            print(nfile)
+            if (isSend==False) and (nfile == nBundle-1):
+                isSend = True
+            # Record sound with duration of config['audio']['record_seconds']
+            record_frames = recording(record_frames, stream)
+            # # Save the recorded sound
+            # filename = '%s/%d.wav'%(config['files']['sound_dir'], nfile)
+            # wav_packaging.makeWavFile(filename, audioSampleSize, record_frames)
+            send_frames[nfile%nBundle*nFrame:(nfile%nBundle+1)*nFrame] = record_frames
+            if isSend:
+                filename = '%s/%s-%d.wav'%(config['files']['sound_dir'], mac, nfile)
+                # wav_packaging.process(filename, audioSampleSize, send_frames)
+                _thread.start_new_thread(wav_packaging.process, (filename, audioSampleSize, send_frames) )
+            nfile += 1
+            if nfile == config['files']['num_save'] :
+                nfile = 0
+        except KeyboardInterrupt:
+            stream.stop_stream()
+            stream.close()
+            p.terminate()
+            quit()

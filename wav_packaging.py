@@ -15,8 +15,13 @@ def makeWavFile(filename, audioSampleSize, frames):
 
 def send_wav(filename):
     with open(filename, 'rb') as sf:
-        res = requests.post(config['files']['send_url'], files={'file': sf}, verify=False)
-        print(res.text)
+        try: # Send the wave file to the ML server
+            res = requests.post(config['files']['send_url'], files={'file': sf}, timeout=(3,5))
+            # print(filename.split('/')[-1], res.text)
+            return res
+        except Exception as e:
+            print(e)
+            return None
 
 def agg_wav(nfile):
     ''' 
@@ -46,28 +51,28 @@ def agg_wav(nfile):
 def str2list(text):
     cmd = text.replace('\'','').split()
     # 이 코드를 보시는 분 한번만 눈감아 주셈
-    cmd[5] = cmd[5] + ' ' + cmd[6]
-    cmd[8] = cmd[8] + ' ' + cmd[9]
-    del cmd[9]
-    del cmd[6]
+    cmd[7] = cmd[7] + ' ' + cmd[8]
+    cmd[10] = cmd[10] + ' ' + cmd[11]
+    del cmd[11]
+    del cmd[8]
     return cmd
 
-def process(filename, audioSampleSize, frames):
+def process(filename, audioSampleSize, frames, mac):
     makeWavFile(filename, audioSampleSize, frames)
-    # send_wav(filename)
-    curl = "curl -X POST http://api-2106.bs-soft.co.kr/smaltBell/upload-analysis/ "
-    cmdStr = curl + "-H 'accept: application/json' -H 'Content-Type: multipart/form-data' -F file=@"+filename+";type=audio/wav"
-    cmd = str2list(cmdStr)
-    subprocess.Popen(cmd) # Background execution of curl command
+    res = send_wav(filename)
+    if (res is not None) and (res.json()['result'] == 'scream'):
+        baseUrl = config['smartbell']['alarm_url']
+        print('Scream Detected!')
+        try: # Send Event to the Web server
+            requests.post('%s/%s'%(baseUrl,mac), json={'type':'scream'}, timeout=(5,30))
+        except Exception as e:
+            print(e)
+    # curl = "curl -X POST http://api-2106.bs-soft.co.kr/smaltBell/upload-analysis/ -m 5 "
+    # cmdStr = curl + "-H 'accept: application/json' -H 'Content-Type: multipart/form-data' -F file=@"+filename+";type=audio/wav"
+    # cmd = str2list(cmdStr)
+    # subprocess.Popen(cmd) # Background execution of curl command
 
 if __name__ == '__main__':
-    fname = 'sound/00e02dbc40cc-19.wav'
-    curl = "curl -X POST http://api-2106.bs-soft.co.kr/smaltBell/upload-analysis/"
-    cmdStr = curl + "-H 'accept: application/json' -H 'Content-Type: multipart/form-data' -F file=@"+fname+";type=audio/wav"
-    cmd = str2list(cmdStr)
-    print(cmd)
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    out, err = proc.communicate()
-    print(out)
-    print(err)
+    filename = 'sound/00e02dbc40cc-19.wav'
+    res = send_wav(filename)
 

@@ -17,10 +17,13 @@ BUTTON = 17
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON, GPIO.IN)
 
-def button_callback():
+def button_callback(mac):
     while True:
         state = GPIO.input(BUTTON)
         if not (state): # button is pressed
+            print('Button Pressed')
+            baseUrl = config['smartbell']['alarm_url']
+            res = requests.post('%s/%s'%(baseUrl,mac), json={'type':'button'}, timeout=(5,30))
             play_wav(config['smartbell']['alarm_wav'])
         sleep(0.1)
 
@@ -63,7 +66,7 @@ if __name__ == '__main__':
     _thread.start_new_thread(heartbeat, (mac,))
 
     # Start Button Callback Thread
-    _thread.start_new_thread(button_callback, ())
+    _thread.start_new_thread(button_callback, (mac,))
 
     # Main Loop
     nfile = 0
@@ -74,19 +77,20 @@ if __name__ == '__main__':
     send_frames = [b'']*(nFrame*nBundle) # Initialize nFrame*num_sending_bundle length empty byte array
     while(True):
         try:
-            print(nfile)
             if (isSend==False) and (nfile == nBundle-1):
                 isSend = True
             # Record sound with duration of config['audio']['record_seconds']
-            record_frames = recording(record_frames, stream)
+            try:
+                record_frames = recording(record_frames, stream)
+            except Exception as e:
+                print('Recording Error: %s'%e)
             # # Save the recorded sound
             # filename = '%s/%d.wav'%(config['files']['sound_dir'], nfile)
             # wav_packaging.makeWavFile(filename, audioSampleSize, record_frames)
             send_frames[nfile%nBundle*nFrame:(nfile%nBundle+1)*nFrame] = record_frames
             if isSend:
                 filename = '%s/%s-%d.wav'%(config['files']['sound_dir'], mac, nfile)
-                # wav_packaging.process(filename, audioSampleSize, send_frames)
-                _thread.start_new_thread(wav_packaging.process, (filename, audioSampleSize, send_frames) )
+                _thread.start_new_thread(wav_packaging.process, (filename, audioSampleSize, send_frames, mac) )
             nfile += 1
             if nfile == config['files']['num_save'] :
                 nfile = 0

@@ -5,9 +5,7 @@ from time import sleep
 
 import requests
 
-from utils.pixels import welcome_light, alarm_light
 from utils.init import config, mac
-from utils.playwav import play_wav
 import wav_packaging
 
 import RPi.GPIO as GPIO
@@ -23,13 +21,18 @@ def button_callback(mac):
         if not (state): # button is pressed
             print('Button Pressed')
             baseUrl = config['smartbell']['alarm_url']
-            _thread.start_new_thread(alarm_light, ())
+            subprocess.Popen(['pkill', '-f', 'light'])
+            sleep(0.1)
+            subprocess.Popen(['python3', 'utils/pixels.py', 'alarm_light'])
+            # !! IMPORTANT !! 아래 전송 및 알람 코드를 바꾸지 마세요. 바꾸면 오디오 레코딩 오류가 발생합니다!!
             try:
                 requests.post('%s/%s'%(baseUrl,mac), json={'type':'button'}, timeout=(5,30))
             except Exception as e:
                 print(e)
-            play_wav(config['smartbell']['alarm_wav'])
-
+            subprocess.Popen(['pkill', '-f', 'aplay'])
+            sleep(0.1)
+            subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
+                config['smartbell']['alarm_wav']])
         sleep(0.1)
 
 def recording(frames,stream):
@@ -47,18 +50,20 @@ def heartbeat(mac):
             print(e)
         sleep(config['smartbell']['heartbeat_interval'])
 
-# TODO: 알람 소리와 깜빡임을 동시에 재생 thread 구현
+
 if __name__ == '__main__':
     # Initialize the directory
     os.makedirs(config['files']['sound_dir'], exist_ok=True)
-
+    if os.path.exists("lock.alarm"):
+        os.remove("lock.alarm")
+        
     # Set Alarm Volume
     m = alsaaudio.Mixer(control='Playback', cardindex=1)
     m.setvolume(int(config['smartbell']['volume'])) # Set the volume to 70%.
     # current_volume = m.getvolume() # Get the current Volume
 
     # Start Welcome Light
-    _thread.start_new_thread(welcome_light, ())
+    subprocess.Popen(['python3', 'utils/pixels.py', 'welcome_light'])
 
     # Initialize the PyAudio
     p = pyaudio.PyAudio()

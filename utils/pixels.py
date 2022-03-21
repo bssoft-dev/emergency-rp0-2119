@@ -3,9 +3,10 @@ LED light pattern like Google Home
 Origianl URL https://github.com/respeaker/mic_hat/blob/master/interfaces/pixels.py
 """
 
-from utils import apa102
-# import apa102
+# from utils import apa102
+import apa102
 import time
+import sys
 import threading
 try:
     import queue as Queue
@@ -153,24 +154,10 @@ def alarm_light():
     pixels.off()
     time.sleep(1)
 
-
 if __name__ == '__main__':
-    # pixels = Pixels()
-    # while True:
-
-    #     try:
-    #         pixels.wakeup()
-    #         time.sleep(3)
-    #         pixels.think()
-    #         time.sleep(3)
-    #         pixels.speak()
-    #         time.sleep(3)
-    #         pixels.off()
-    #         time.sleep(3)
-    #     except KeyboardInterrupt:
-    #         break
-
-
-    # pixels.off()
-    # time.sleep(1)
-    alarm_light()
+    if sys.argv[1] == 'welcome_light':
+        welcome_light()
+    elif sys.argv[1] == 'alarm_light':
+        alarm_light()
+    elif sys.argv[1] == 'alarm_lock_light':
+        alarm_lock_light()

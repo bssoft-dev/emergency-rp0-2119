@@ -5,7 +5,7 @@ from time import sleep
 
 import requests
 
-from utils.pixels import welcome_light
+from utils.pixels import welcome_light, alarm_light
 from utils.init import config, mac
 from utils.playwav import play_wav
 import wav_packaging
@@ -23,8 +23,13 @@ def button_callback(mac):
         if not (state): # button is pressed
             print('Button Pressed')
             baseUrl = config['smartbell']['alarm_url']
-            res = requests.post('%s/%s'%(baseUrl,mac), json={'type':'button'}, timeout=(5,30))
+            _thread.start_new_thread(alarm_light, ())
+            try:
+                requests.post('%s/%s'%(baseUrl,mac), json={'type':'button'}, timeout=(5,30))
+            except Exception as e:
+                print(e)
             play_wav(config['smartbell']['alarm_wav'])
+
         sleep(0.1)
 
 def recording(frames,stream):
@@ -36,11 +41,13 @@ def recording(frames,stream):
 def heartbeat(mac):
     print('mac address: %s'%mac)
     while True:
-        res = requests.get('{}/{}/heartbeat'.format(config['smartbell']['heartbeat_url'], mac))
-        if res.status_code != 200:
-            print('Heartbeat Error')
+        try:
+            requests.get('{}/{}/heartbeat'.format(config['smartbell']['heartbeat_url'], mac), timeout=(1,4))
+        except Exception as e:
+            print(e)
         sleep(config['smartbell']['heartbeat_interval'])
 
+# TODO: 알람 소리와 깜빡임을 동시에 재생 thread 구현
 if __name__ == '__main__':
     # Initialize the directory
     os.makedirs(config['files']['sound_dir'], exist_ok=True)

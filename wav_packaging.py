@@ -2,6 +2,8 @@ import sys, subprocess
 import wave, pyaudio
 from utils.init import config
 from time import time
+from utils.playwav import play_wav
+from utils.pixels import alarm_light
 
 import requests, json
 
@@ -16,7 +18,7 @@ def makeWavFile(filename, audioSampleSize, frames):
 def send_wav(filename):
     with open(filename, 'rb') as sf:
         try: # Send the wave file to the ML server
-            res = requests.post(config['files']['send_url'], files={'file': sf}, timeout=(3,5))
+            res = requests.post(config['files']['send_url'], files={'file': sf}, timeout=(2,3))
             # print(filename.split('/')[-1], res.text)
             return res
         except Exception as e:
@@ -48,29 +50,32 @@ def agg_wav(nfile):
     etime = time()
     print('thread process time: %fs'%(etime-stime))
 
-def str2list(text):
-    cmd = text.replace('\'','').split()
-    # 이 코드를 보시는 분 한번만 눈감아 주셈
-    cmd[7] = cmd[7] + ' ' + cmd[8]
-    cmd[10] = cmd[10] + ' ' + cmd[11]
-    del cmd[11]
-    del cmd[8]
-    return cmd
+# def str2list(text):
+#     cmd = text.replace('\'','').split()
+#     # 이 코드를 보시는 분 한번만 눈감아 주셈
+#     cmd[7] = cmd[7] + ' ' + cmd[8]
+#     cmd[10] = cmd[10] + ' ' + cmd[11]
+#     del cmd[11]
+#     del cmd[8]
+#     return cmd
 
 def process(filename, audioSampleSize, frames, mac):
     makeWavFile(filename, audioSampleSize, frames)
-    res = send_wav(filename)
-    if (res is not None) and (res.json()['result'] == 'scream'):
-        baseUrl = config['smartbell']['alarm_url']
-        print('Scream Detected!')
-        try: # Send Event to the Web server
-            requests.post('%s/%s'%(baseUrl,mac), json={'type':'scream'}, timeout=(5,30))
-        except Exception as e:
-            print(e)
     # curl = "curl -X POST http://api-2106.bs-soft.co.kr/smaltBell/upload-analysis/ -m 5 "
     # cmdStr = curl + "-H 'accept: application/json' -H 'Content-Type: multipart/form-data' -F file=@"+filename+";type=audio/wav"
     # cmd = str2list(cmdStr)
     # subprocess.Popen(cmd) # Background execution of curl command
+    res = send_wav(filename)
+    if (res is not None) and (res.json()['result'] == 'scream'):
+        baseUrl = config['smartbell']['alarm_url']
+        print('Scream Detected!')
+        _thread.start_new_thread(alarm_light, ())
+        try: # Send Event to the Web server
+            requests.post('%s/%s'%(baseUrl,mac), json={'type':'scream'}, timeout=(3,5))
+        except Exception as e:
+            print(e)
+        play_wav(config['smartbell']['alarm_wav'])
+
 
 if __name__ == '__main__':
     filename = 'sound/00e02dbc40cc-19.wav'

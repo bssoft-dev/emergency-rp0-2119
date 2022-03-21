@@ -4,6 +4,7 @@ Origianl URL https://github.com/respeaker/mic_hat/blob/master/interfaces/pixels.
 """
 
 from utils import apa102
+# import apa102
 import time
 import threading
 try:
@@ -141,23 +142,35 @@ def welcome_light():
     pixels.off()
     time.sleep(1)
 
-
-if __name__ == '__main__':
+def alarm_light():
     pixels = Pixels()
-    while True:
-
-        try:
-            pixels.wakeup()
-            time.sleep(3)
-            pixels.think()
-            time.sleep(3)
-            pixels.speak()
-            time.sleep(3)
-            pixels.off()
-            time.sleep(3)
-        except KeyboardInterrupt:
-            break
-
-
+    pixels.wakeup()
+    time.sleep(1)
+    pixels.speak()
+    time.sleep(10)
+    pixels.off()
+    time.sleep(3)
     pixels.off()
     time.sleep(1)
+
+
+if __name__ == '__main__':
+    # pixels = Pixels()
+    # while True:
+
+    #     try:
+    #         pixels.wakeup()
+    #         time.sleep(3)
+    #         pixels.think()
+    #         time.sleep(3)
+    #         pixels.speak()
+    #         time.sleep(3)
+    #         pixels.off()
+    #         time.sleep(3)
+    #     except KeyboardInterrupt:
+    #         break
+
+
+    # pixels.off()
+    # time.sleep(1)
+    alarm_light()

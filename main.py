@@ -5,7 +5,7 @@ from time import sleep
 
 import requests
 
-from utils.init import config, mac
+from utils.init import config, mac, print_settings, logger
 from utils.alsahandle import noalsaerr
 import wav_packaging
 
@@ -20,7 +20,7 @@ def button_callback(mac):
     while True:
         state = GPIO.input(BUTTON)
         if not (state): # button is pressed
-            print('Button Pressed')
+            logger.info('Button Pressed')
             baseUrl = config['smartbell']['alarm_url']
             # Turn on the LED
             subprocess.Popen(['pkill', '-f', 'light'])
@@ -30,7 +30,7 @@ def button_callback(mac):
             try:
                 requests.post('%s/%s'%(baseUrl,mac), json={'type':'button'}, timeout=(3,5))
             except Exception as e:
-                print('Send Button Event -',e)
+                logger.warning('Send Button Event - %s'%e)
             # Play the alarm sound
             subprocess.Popen(['pkill', '-f', 'aplay'])
             sleep(0.1)
@@ -54,11 +54,15 @@ def heartbeat(mac):
 
 
 if __name__ == '__main__':
+    # Start Welcome Light
+    subprocess.Popen(['python3', 'utils/pixels.py', 'welcome_light'])
     # Welcome Message
     print('')
     print('############################################################')
     print('Smartbell - Audio Recording and Alarm System V 1.0')
     print('############################################################')
+    # Print Every settings
+    print_settings(config, mac)
 
     # Initialize the directory
     os.makedirs(config['files']['sound_dir'], exist_ok=True)
@@ -70,8 +74,6 @@ if __name__ == '__main__':
     m.setvolume(int(config['smartbell']['volume'])) # Set the volume to 70%.
     # current_volume = m.getvolume() # Get the current Volume
 
-    # Start Welcome Light
-    subprocess.Popen(['python3', 'utils/pixels.py', 'welcome_light'])
 
     # Initialize the PyAudio
     with noalsaerr():
@@ -96,6 +98,8 @@ if __name__ == '__main__':
     nBundle = config['files']['num_sending_bundle']
     record_frames = [b'']*nFrame # Initialize nFrame length empty byte array
     send_frames = [b'']*(nFrame*nBundle) # Initialize nFrame*num_sending_bundle length empty byte array
+    logger.info('##############################################')
+    logger.info('Main Loop is Started, Recording and Sending')
     while(True):
         try:
             if (isSend==False) and (nfile == nBundle-1):
@@ -104,10 +108,11 @@ if __name__ == '__main__':
             try:
                 record_frames = recording(record_frames, stream)
             except Exception as e:
-                print('Recording Error: %s'%e)
+                logger.warning('Recording Error: %s'%e)
                 p.terminate()
                 sleep(1)
-                p = pyaudio.PyAudio()
+                with noalsaerr():
+                    p = pyaudio.PyAudio()
                 stream = p.open(format=pyaudio.paInt16,
                     channels=config['audio']['channels'],
                     rate=config['audio']['rate'],
@@ -120,7 +125,7 @@ if __name__ == '__main__':
             send_frames[nfile%nBundle*nFrame:(nfile%nBundle+1)*nFrame] = record_frames
             if isSend:
                 filename = '%s/%s-%d.wav'%(config['files']['sound_dir'], mac, nfile)
-                _thread.start_new_thread(wav_packaging.process, (filename, audioSampleSize, send_frames, mac) )
+                _thread.start_new_thread(wav_packaging.process, (filename, audioSampleSize, send_frames) )
             nfile += 1
             if nfile == config['files']['num_save'] :
                 nfile = 0

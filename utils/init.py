@@ -1,6 +1,18 @@
 import configparser
 import subprocess
 import os
+from utils.setLogger import Logger
+
+def print_settings(config, mac):
+    for i in ['audio', 'files', 'smartbell']:
+        print('----------'+i+'----------')
+        for j in config[i]:
+            print(j,':',config[i][j])
+        print('')
+    print('--------------------------------')
+    print('MAC ADDRESS:',mac)
+    print('--------------------------------')
+
 
 p_config = configparser.ConfigParser()
 if os.path.exists('/boot/smartbell_config.txt'):
@@ -22,12 +34,6 @@ config['smartbell']['heartbeat_interval'] = int(config['smartbell']['heartbeat_i
 # Calc num_sending_bundle
 config['files']['num_sending_bundle'] = config['files']['sending_record_seconds']//config['audio']['record_seconds']
 # Print Every settings
-for i in p_config.sections():
-    print('--------'+i+'--------')
-    for j in config[i]:
-        print(j,':',config[i][j])
-    print('')
-print('-------------------')
 
 # Obtain mac_address
 addr = subprocess.Popen(('ip','address'), stdout=subprocess.PIPE)
@@ -36,4 +42,6 @@ res_ether = [i for i in res_text.split('\n') if 'ether' in i]
 mac = res_ether[-1].split(' ')[5].replace(':','')
 
 
-print('MAC ADDRESS:',mac)
+# Set logger
+logger = Logger(name='smartbell',logdir=config['files']['log_dir'])
+

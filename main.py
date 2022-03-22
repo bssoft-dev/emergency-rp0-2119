@@ -6,6 +6,7 @@ from time import sleep
 import requests
 
 from utils.init import config, mac
+from utils.alsahandle import noalsaerr
 import wav_packaging
 
 import RPi.GPIO as GPIO
@@ -21,14 +22,16 @@ def button_callback(mac):
         if not (state): # button is pressed
             print('Button Pressed')
             baseUrl = config['smartbell']['alarm_url']
+            # Turn on the LED
             subprocess.Popen(['pkill', '-f', 'light'])
             sleep(0.1)
             subprocess.Popen(['python3', 'utils/pixels.py', 'alarm_light'])
-            # !! IMPORTANT !! 아래 전송 및 알람 코드를 바꾸지 마세요. 바꾸면 오디오 레코딩 오류가 발생합니다!!
+            # Send the alarm to the server
             try:
-                requests.post('%s/%s'%(baseUrl,mac), json={'type':'button'}, timeout=(5,30))
+                requests.post('%s/%s'%(baseUrl,mac), json={'type':'button'}, timeout=(3,5))
             except Exception as e:
-                print(e)
+                print('Send Button Event -',e)
+            # Play the alarm sound
             subprocess.Popen(['pkill', '-f', 'aplay'])
             sleep(0.1)
             subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
@@ -42,16 +45,21 @@ def recording(frames,stream):
     return frames
 
 def heartbeat(mac):
-    print('mac address: %s'%mac)
     while True:
         try:
             requests.get('{}/{}/heartbeat'.format(config['smartbell']['heartbeat_url'], mac), timeout=(1,4))
         except Exception as e:
-            print(e)
+            print('Heartbeat -',e)
         sleep(config['smartbell']['heartbeat_interval'])
 
 
 if __name__ == '__main__':
+    # Welcome Message
+    print('')
+    print('############################################################')
+    print('Smartbell - Audio Recording and Alarm System V 1.0')
+    print('############################################################')
+
     # Initialize the directory
     os.makedirs(config['files']['sound_dir'], exist_ok=True)
     if os.path.exists("lock.alarm"):
@@ -66,7 +74,8 @@ if __name__ == '__main__':
     subprocess.Popen(['python3', 'utils/pixels.py', 'welcome_light'])
 
     # Initialize the PyAudio
-    p = pyaudio.PyAudio()
+    with noalsaerr():
+        p = pyaudio.PyAudio()
     stream = p.open(format=pyaudio.paInt16,
                 channels=config['audio']['channels'],
                 rate=config['audio']['rate'],
@@ -96,6 +105,15 @@ if __name__ == '__main__':
                 record_frames = recording(record_frames, stream)
             except Exception as e:
                 print('Recording Error: %s'%e)
+                p.terminate()
+                sleep(1)
+                p = pyaudio.PyAudio()
+                stream = p.open(format=pyaudio.paInt16,
+                    channels=config['audio']['channels'],
+                    rate=config['audio']['rate'],
+                    input=True,
+                    frames_per_buffer=config['audio']['chunk'])
+                sleep(1)
             # # Save the recorded sound
             # filename = '%s/%d.wav'%(config['files']['sound_dir'], nfile)
             # wav_packaging.makeWavFile(filename, audioSampleSize, record_frames)

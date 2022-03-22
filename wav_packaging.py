@@ -18,11 +18,11 @@ def makeWavFile(filename, audioSampleSize, frames):
 def send_wav(filename):
     with open(filename, 'rb') as sf:
         try: # Send the wave file to the ML server
-            res = requests.post(config['files']['send_url'], files={'file': sf}, timeout=(2,3))
+            res = requests.post(config['files']['send_url'], files={'file': sf}, timeout=(3,5))
             # print(filename.split('/')[-1], res.text)
             return res
         except Exception as e:
-            print(e)
+            print('Send audio -',e)
             return None
 
 def agg_wav(nfile):
@@ -48,6 +48,7 @@ def agg_wav(nfile):
     send_wav(sfilename)
 
 def process(filename, audioSampleSize, frames, mac):
+    makeWavFile(filename, audioSampleSize, frames)
     res = send_wav(filename)
     if (res is not None) and (res.json()['result'] == 'scream'):
         # if another thread is running, wait for it to finish by using lock.alarm file
@@ -61,7 +62,7 @@ def process(filename, audioSampleSize, frames, mac):
             try: # Send Event to the Web server
                 requests.post('%s/%s'%(baseUrl,mac), json={'type':'scream'}, timeout=(3,5))
             except Exception as e:
-                print(e)
+                print('Send Scream Event -',e)
             subprocess.call(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
                     config['smartbell']['alarm_wav']])
             os.remove('lock.alarm')

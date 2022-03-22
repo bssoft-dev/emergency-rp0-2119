@@ -107,6 +107,8 @@ if __name__ == '__main__':
             if nfile == config['files']['num_save'] :
                 nfile = 0
         except KeyboardInterrupt:
+            subprocess.Popen(['pkill', '-f', 'light'])
+            sleep(0.1)
             stream.stop_stream()
             stream.close()
             p.terminate()

@@ -18,11 +18,13 @@ class Pixels:
     PIXELS_N = 3
 
     def __init__(self):
+        # self.basis is list of 9 ints i.e. [r, g, b, r, g, b, r, g, b]
         self.basis = [0] * 3 * self.PIXELS_N
-        self.basis[0] = 2
-        self.basis[3] = 1
-        self.basis[4] = 1
-        self.basis[7] = 2
+        # basic brightness
+        self.basis[0] = 10
+        self.basis[3] = 5
+        self.basis[4] = 5
+        self.basis[7] = 10
 
         self.colors = [0] * 3 * self.PIXELS_N
         self.dev = apa102.APA102(num_led=self.PIXELS_N)
@@ -129,6 +131,8 @@ class Pixels:
 
         self.dev.show()
 
+    def stay(self):
+        self.write([0, 0, 500, 0, 0, 500, 0, 0, 500])
 
 def welcome_light():
     pixels = Pixels()
@@ -138,10 +142,11 @@ def welcome_light():
     time.sleep(3)
     pixels.speak()
     time.sleep(3)
-    pixels.off()
-    time.sleep(3)
-    pixels.off()
-    time.sleep(1)
+    # pixels.off()
+    # time.sleep(3)
+    # pixels.off()
+    # time.sleep(1)
+    pixels.stay()
 
 def alarm_light():
     pixels = Pixels()
@@ -149,10 +154,11 @@ def alarm_light():
     time.sleep(1)
     pixels.speak()
     time.sleep(10)
-    pixels.off()
-    time.sleep(3)
-    pixels.off()
-    time.sleep(1)
+    # pixels.off()
+    # time.sleep(3)
+    # pixels.off()
+    # time.sleep(1)
+    pixels.stay()
 
 if __name__ == '__main__':
     if sys.argv[1] == 'welcome_light':

@@ -47,7 +47,7 @@ def recording(frames,stream):
 def heartbeat(mac):
     while True:
         try:
-            requests.get('{}/{}/heartbeat'.format(config['smartbell']['heartbeat_url'], mac), timeout=(1,4))
+            requests.get('{}/{}/heartbeat'.format(config['smartbell']['heartbeat_url'], mac), timeout=(1,3))
         except Exception as e:
             print('Heartbeat -',e)
         sleep(config['smartbell']['heartbeat_interval'])
@@ -100,8 +100,11 @@ if __name__ == '__main__':
     send_frames = [b'']*(nFrame*nBundle) # Initialize nFrame*num_sending_bundle length empty byte array
     logger.info('##############################################')
     logger.info('Main Loop is Started, Recording and Sending')
+    count = 0
     while(True):
         try:
+            logger.info(count)
+            count += 1
             if (isSend==False) and (nfile == nBundle-1):
                 isSend = True
             # Record sound with duration of config['audio']['record_seconds']
@@ -110,19 +113,21 @@ if __name__ == '__main__':
             except Exception as e:
                 logger.warning('Recording Error: %s'%e)
                 p.terminate()
-                sleep(1)
+                sleep(10)
                 with noalsaerr():
+                    logger.info('Restarting PyAudio')
                     p = pyaudio.PyAudio()
                 stream = p.open(format=pyaudio.paInt16,
                     channels=config['audio']['channels'],
                     rate=config['audio']['rate'],
                     input=True,
                     frames_per_buffer=config['audio']['chunk'])
-                sleep(1)
-            # # Save the recorded sound
+                # sleep(1)
+
+            # # # Save the recorded sound
             # filename = '%s/%d.wav'%(config['files']['sound_dir'], nfile)
             # wav_packaging.makeWavFile(filename, audioSampleSize, record_frames)
-            send_frames[nfile%nBundle*nFrame:(nfile%nBundle+1)*nFrame] = record_frames
+            # send_frames[nfile%nBundle*nFrame:(nfile%nBundle+1)*nFrame] = record_frames
             if isSend:
                 filename = '%s/%s-%d.wav'%(config['files']['sound_dir'], mac, nfile)
                 _thread.start_new_thread(wav_packaging.process, (filename, audioSampleSize, send_frames) )
@@ -130,8 +135,6 @@ if __name__ == '__main__':
             if nfile == config['files']['num_save'] :
                 nfile = 0
         except KeyboardInterrupt:
-            subprocess.Popen(['pkill', '-f', 'light'])
-            sleep(0.1)
             stream.stop_stream()
             stream.close()
             p.terminate()

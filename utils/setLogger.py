@@ -14,7 +14,7 @@ class Setting():
     FORMAT = "%(asctime)s[%(levelname)s|%(filename)s,%(lineno)s] %(message)s"
 
 
-def Logger(name='log',logdir='./logs/'):
+def Logger(name='log', logdir='./logs/', level='DEBUG'):
     """파일 로그 클래스
         :param name: 로그 이름
         :type name: str
@@ -43,7 +43,10 @@ def Logger(name='log',logdir='./logs/'):
 
     ## stream(consle), file save level
     # streamHandler.setLevel(Setting.LEVEL2)
-    fileHandler.setLevel(Setting.LEVEL1)
+    if level == 'DEBUG':
+        fileHandler.setLevel(Setting.LEVEL1)
+    elif level == 'INFO':
+        fileHandler.setLevel(Setting.LEVEL2)
 
     # 핸들러 & 포매터 결합
     # streamHandler.setFormatter(formatter)

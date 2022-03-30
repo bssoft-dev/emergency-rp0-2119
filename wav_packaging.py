@@ -4,7 +4,7 @@ import wave, pyaudio
 import _thread
 from utils.init import config, mac, logger
 from utils.reqUtil import requests_retry_session
-from time import sleep, time
+from time import sleep
 
 import requests, json
 
@@ -19,10 +19,8 @@ def makeWavFile(filename, audioSampleSize, frames):
 def send_wav(filename):
     with open(filename, 'rb') as sf:
         try: # Send the wave file to the ML server
-            # res = requests.post(config['files']['send_url'], files={'file': sf}, timeout=(3,5))
-            tic = time()
+            # res = requests.post(config['files']['send_url'], files={'file': sf}, timeout=(3,6))
             res = requests_retry_session(retries=0).post(config['files']['send_url'], files={'file': sf}, timeout=(3,6))
-            logger.info('Time taken: %s'%(time()-tic))
             # print(filename.split('/')[-1], res.text)
             return res
         except Exception as e:

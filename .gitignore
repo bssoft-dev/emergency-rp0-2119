@@ -1,7 +1,8 @@
 #### my settings ####
-log.*
+log*
 sound/
 logs/
+monlog.*
 ####### .gitignore for python #########
 # Byte-compiled / optimized / DLL files
 __pycache__/

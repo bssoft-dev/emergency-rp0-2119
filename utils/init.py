@@ -43,5 +43,5 @@ mac = res_ether[-1].split(' ')[5].replace(':','')
 
 
 # Set logger
-logger = Logger(name='smartbell',logdir=config['files']['log_dir'])
+logger = Logger(name='smartbell', logdir=config['files']['log_dir'], level=config['files']['log_level'])
 

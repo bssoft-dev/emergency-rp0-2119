@@ -49,11 +49,15 @@ def heartbeat(mac):
         try:
             requests.get('{}/{}/heartbeat'.format(config['smartbell']['heartbeat_url'], mac), timeout=(1,3))
         except Exception as e:
-            print('Heartbeat -',e)
+            logger.warning('Heartbeat -',e)
         sleep(config['smartbell']['heartbeat_interval'])
 
 
 if __name__ == '__main__':
+    # Log starting
+    logger.info('##############################################')
+    logger.info('Smartbell is Started. Enjoy your safety.')
+
     # Start Welcome Light
     subprocess.Popen(['python3', 'utils/pixels.py', 'welcome_light'])
     # Welcome Message
@@ -70,10 +74,10 @@ if __name__ == '__main__':
         os.remove("lock.alarm")
         
     # Set Alarm Volume
+    #subprocess.call(['amixer', '-c', '1', 'sset', 'Playback', '{}\%'.format(config['smartbell']['volume'])])
     m = alsaaudio.Mixer(control='Playback', cardindex=1)
     m.setvolume(int(config['smartbell']['volume'])) # Set the volume to 70%.
     # current_volume = m.getvolume() # Get the current Volume
-
 
     # Initialize the PyAudio
     with noalsaerr():
@@ -98,12 +102,11 @@ if __name__ == '__main__':
     nBundle = config['files']['num_sending_bundle']
     record_frames = [b'']*nFrame # Initialize nFrame length empty byte array
     send_frames = [b'']*(nFrame*nBundle) # Initialize nFrame*num_sending_bundle length empty byte array
-    logger.info('##############################################')
     logger.info('Main Loop is Started, Recording and Sending')
     count = 0
     while(True):
         try:
-            logger.info(count)
+            logger.debug(count)
             count += 1
             if (isSend==False) and (nfile == nBundle-1):
                 isSend = True
@@ -112,22 +115,12 @@ if __name__ == '__main__':
                 record_frames = recording(record_frames, stream)
             except Exception as e:
                 logger.warning('Recording Error: %s'%e)
-                p.terminate()
-                sleep(10)
-                with noalsaerr():
-                    logger.info('Restarting PyAudio')
-                    p = pyaudio.PyAudio()
-                stream = p.open(format=pyaudio.paInt16,
-                    channels=config['audio']['channels'],
-                    rate=config['audio']['rate'],
-                    input=True,
-                    frames_per_buffer=config['audio']['chunk'])
-                # sleep(1)
+                exit() 
 
             # # # Save the recorded sound
             # filename = '%s/%d.wav'%(config['files']['sound_dir'], nfile)
             # wav_packaging.makeWavFile(filename, audioSampleSize, record_frames)
-            # send_frames[nfile%nBundle*nFrame:(nfile%nBundle+1)*nFrame] = record_frames
+            send_frames[nfile%nBundle*nFrame:(nfile%nBundle+1)*nFrame] = record_frames
             if isSend:
                 filename = '%s/%s-%d.wav'%(config['files']['sound_dir'], mac, nfile)
                 _thread.start_new_thread(wav_packaging.process, (filename, audioSampleSize, send_frames) )

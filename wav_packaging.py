@@ -1,7 +1,7 @@
-import subprocess, os
-from pathlib import Path
+import subprocess
+from asyncio import sleep
 import wave
-from utils.init import config, mac, logger
+from utils.init import config, deviceId, logger
 import aiohttp
 
 
@@ -30,30 +30,41 @@ async def send_wav(filename):
             logger.warning('Send audio - %s'%e)
             return None
 
-async def process(filename, audioSampleSize, frames):
-    makeWavFile(filename, audioSampleSize, frames)
+def lock_count(alarm_lock):
+    if alarm_lock == 0:
+        return 0
+    else:
+        alarm_lock = int(alarm_lock) - 1
+        return alarm_lock
+
+async def process(filename, alarm_lock):
     res = await send_wav(filename)
-    if res is not None:
-        if res.headers.get('content-type') != 'application/json':
-            logger.warning('Send audio - %s'%res)
-        else:
-            event_res = await res.json()
-            if (event_res['result'] == 'scream') and not os.path.exists('lock.alarm'):
-                # if another thread is running, wait for it to finish by using lock.alarm file
-                Path('lock.alarm').touch()
+    if res.headers.get('content-type') != 'application/json':
+        logger.warning('Send audio - %s'%res)
+        return lock_count(alarm_lock)
+    else:
+        event_res = await res.json()
+        if (event_res['result'] == 'scream'):
+            logger.info('Scream Detected!')
+            if alarm_lock == 0: # if alarm is not running
                 baseUrl = config['smartbell']['alarm_url']
-                logger.info('Scream Detected!')
+                # Light the LED
                 subprocess.Popen(['python3', 'utils/pixels.py', 'alarm_light'])
                 # Send Event to the Web server
                 async with aiohttp.ClientSession() as session:
                     try:
-                        await session.post('%s/%s'%(baseUrl,mac), json={'type':'scream'})
+                        await session.post('%s/%s'%(baseUrl,deviceId), json={'type':'scream'})
                     except Exception as e:
                         logger.warning('Send Scream Event - %s'%e)
                 # Play the alarm sound
                 subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
                         config['smartbell']['alarm_wav']])
-                os.remove('lock.alarm')
+                return config['smartbell']['alarm_duration']
+            else:
+                return lock_count(alarm_lock)
+        else:
+            return lock_count(alarm_lock)
+            
 
 if __name__ == '__main__':
     filename = 'sound/00e02dbc40cc-19.wav'

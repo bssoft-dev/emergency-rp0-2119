@@ -26,15 +26,15 @@ do
     date
     sudo reboot
   else
-    export LAST_MESSAGE=`tail -1 logs/smartbell.log | awk '{print$8}'`
-    if [[ $LAST_MESSAGE = "overflowed" ]] # If program is died
+    export PROG_STATUS=`ps -ef | grep python | wc -l`
+    if [ $PROG_STATUS = 0 ] # If program is died
     then
       echo "Smartbell program is died. Start program again."
       date
       sudo -H -u pi /usr/bin/python3 main.py &>> log.txt &
-      sleep 5
+      sleep 10
     else # If every thing is ok
-      sleep 5
+      sleep 10
     fi
   fi
 done

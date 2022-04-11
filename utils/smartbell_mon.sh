@@ -17,8 +17,10 @@ fi
 # Main loop - Network, program monitoring
 while true
 do
-  export NET_STATUS=`ping -c 1 $GW_IP &> /dev/null && echo 1 || echo 0` 
-  if [ $NET_STATUS = 0 ] # If ping is unreachable 
+#  export NET_STATUS=`ping -c 1 $GW_IP &> /dev/null && echo 1 || echo 0` 
+  export NET_STATUS=`systemctl is-active ssh.service` 
+#  if [ $NET_STATUS = 0 ] # If ping is unreachable 
+  if [ $NET_STATUS != "active" ] #network service might be inactive 
   then
     echo "Network connection is unstable. Rebooting..."
     date

@@ -1,5 +1,6 @@
 pyaudio
-requests
 RPi.GPIO
 spidev
 pyalsaaudio
+aiohttp
+aiofiles

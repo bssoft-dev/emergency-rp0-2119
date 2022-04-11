@@ -1,12 +1,9 @@
-import sys, subprocess, os
+import subprocess, os
 from pathlib import Path
-import wave, pyaudio
-import _thread
+import wave
 from utils.init import config, mac, logger
-from utils.reqUtil import requests_retry_session
-from time import sleep
+import aiohttp
 
-import requests, json
 
 def makeWavFile(filename, audioSampleSize, frames):
     wf = wave.open(filename, 'wb')
@@ -16,37 +13,45 @@ def makeWavFile(filename, audioSampleSize, frames):
     wf.writeframes(b''.join(frames))
     wf.close()
 
-def send_wav(filename):
-    with open(filename, 'rb') as sf:
-        try: # Send the wave file to the ML server
-            # res = requests.post(config['files']['send_url'], files={'file': sf}, timeout=(3,6))
-            res = requests_retry_session(retries=0).post(config['files']['send_url'], files={'file': sf}, timeout=(3,6))
-            # print(filename.split('/')[-1], res.text)
+async def send_wav(filename):
+    # async with aiofiles.open(filename, 'rb') as sf:
+        # Send the wave file to the ML server
+    timeout = aiohttp.ClientTimeout(total=10)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        try:
+            data = aiohttp.FormData()
+            data.add_field('file',
+                        open(filename, 'rb'),
+                        filename=filename.split('/')[-1],
+                        content_type='audio/wav')
+            res = await session.post(config['files']['send_url'], data=data)
             return res
         except Exception as e:
             logger.warning('Send audio - %s'%e)
             return None
 
-def process(filename, audioSampleSize, frames):
+async def process(filename, audioSampleSize, frames):
     makeWavFile(filename, audioSampleSize, frames)
-    res = send_wav(filename)
+    res = await send_wav(filename)
     if res is not None:
-        if res.status_code != 200:
+        if res.headers.get('content-type') != 'application/json':
             logger.warning('Send audio - %s'%res)
-        elif (res.json()['result'] == 'scream'):
-            # if another thread is running, wait for it to finish by using lock.alarm file
-            if os.path.exists('lock.alarm'):
-                return
-            else:
+        else:
+            event_res = await res.json()
+            if (event_res['result'] == 'scream') and not os.path.exists('lock.alarm'):
+                # if another thread is running, wait for it to finish by using lock.alarm file
                 Path('lock.alarm').touch()
                 baseUrl = config['smartbell']['alarm_url']
                 logger.info('Scream Detected!')
                 subprocess.Popen(['python3', 'utils/pixels.py', 'alarm_light'])
-                try: # Send Event to the Web server
-                    requests.post('%s/%s'%(baseUrl,mac), json={'type':'scream'}, timeout=(3,5))
-                except Exception as e:
-                    logger.warning('Send Scream Event - %s'%e)
-                subprocess.call(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
+                # Send Event to the Web server
+                async with aiohttp.ClientSession() as session:
+                    try:
+                        await session.post('%s/%s'%(baseUrl,mac), json={'type':'scream'})
+                    except Exception as e:
+                        logger.warning('Send Scream Event - %s'%e)
+                # Play the alarm sound
+                subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
                         config['smartbell']['alarm_wav']])
                 os.remove('lock.alarm')
 

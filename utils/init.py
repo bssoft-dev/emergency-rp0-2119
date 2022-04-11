@@ -31,15 +31,17 @@ config['files']['sending_record_seconds'] = int(config['files']['sending_record_
 config['smartbell']['heartbeat_interval'] = int(config['smartbell']['heartbeat_interval'])
 # config['smartbell']['alarm_duration'] = int(config['smartbell']['alarm_duration'])
 
-# Calc num_sending_bundle
-config['files']['num_sending_bundle'] = config['files']['sending_record_seconds']//config['audio']['record_seconds']
-# Print Every settings
+# Calculate number of frames for one single chunk
+config['audio']['num_frame'] = int(config['audio']['rate'] / config['audio']['chunk'] * config['audio']['record_seconds'])
+# Calculate number of chunks for one single file
+config['files']['num_sending_bundle'] = int(config['files']['sending_record_seconds']//config['audio']['record_seconds'])
 
 # Obtain mac_address
-addr = subprocess.Popen(('ip','address'), stdout=subprocess.PIPE)
-res_text = addr.stdout.read(-1).decode('utf-8')
-res_ether = [i for i in res_text.split('\n') if 'ether' in i]
-mac = res_ether[-1].split(' ')[5].replace(':','')
+#addr = subprocess.Popen(('ip','address'), stdout=subprocess.PIPE)
+#res_text = addr.stdout.read(-1).decode('utf-8')
+#res_ether = [i for i in res_text.split('\n') if 'ether' in i]
+#mac = res_ether[-1].split(' ')[5].replace(':','')
+mac = 'kkkkaaaa'
 
 
 # Set logger

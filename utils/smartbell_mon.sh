@@ -7,7 +7,7 @@ echo "Gateway IP is $GW_IP"
 
 # Check smartbell program status
 sleep 1
-export PROG_STATUS=`ps -ef | grep python | wc -l`
+export PROG_STATUS=`ps -ef | grep python | grep -v grep | wc -l`
 if [ $PROG_STATUS = 0 ] # If program is not started properly
 then
   echo "Program is not started properly. Rebooting..."
@@ -26,7 +26,7 @@ do
     date
     sudo reboot
   else
-    export PROG_STATUS=`ps -ef | grep python | wc -l`
+    export PROG_STATUS=`ps -ef | grep python | grep -v grep | wc -l`
     if [ $PROG_STATUS = 0 ] # If program is died
     then
       echo "Smartbell program is died. Start program again."

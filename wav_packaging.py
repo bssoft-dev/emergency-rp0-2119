@@ -39,31 +39,37 @@ def lock_count(alarm_lock):
 
 async def process(filename, alarm_lock):
     res = await send_wav(filename)
-    if res.headers.get('content-type') != 'application/json':
-        logger.warning('Send audio - %s'%res)
-        return lock_count(alarm_lock)
-    else:
-        event_res = await res.json()
-        if (event_res['result'] == 'scream'):
-            logger.info('Scream Detected!')
-            if alarm_lock == 0: # if alarm is not running
-                baseUrl = config['smartbell']['alarm_url']
-                # Light the LED
-                subprocess.Popen(['python3', 'utils/pixels.py', 'alarm_light'])
-                # Send Event to the Web server
-                async with aiohttp.ClientSession() as session:
-                    try:
-                        await session.post('%s/%s'%(baseUrl,deviceId), json={'type':'scream'})
-                    except Exception as e:
-                        logger.warning('Send Scream Event - %s'%e)
-                # Play the alarm sound
-                subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
-                        config['smartbell']['alarm_wav']])
-                return config['smartbell']['alarm_duration']
+    if res is not None:
+        if res.headers.get('content-type') != 'application/json':
+             # contentent-type is not json but status 200 when the server is not work properly
+            logger.warning('Send audio - %s'%res)
+            return lock_count(alarm_lock)
+        else:
+            event_res = await res.json()
+            if (event_res['result'] == 'scream'):
+                logger.info('Scream Detected!')
+                if alarm_lock == 0: # if alarm is not running
+                    baseUrl = config['smartbell']['alarm_url']
+                    # Light the LED
+                    subprocess.Popen(['python3', 'utils/pixels.py', 'alarm_light'])
+                    # Send Event to the Web server
+                    async with aiohttp.ClientSession() as session:
+                        try:
+                            await session.post('%s/%s'%(baseUrl,deviceId), json={'type':'scream'})
+                        except Exception as e:
+                            logger.warning('Send Scream Event - %s'%e)
+                    # Play the alarm sound
+                    subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
+                            config['smartbell']['alarm_wav']])
+                    alarm_lock = config['smartbell']['alarm_duration'] # make alarm-lock
+                    return alarm_lock
+                else:
+                    return lock_count(alarm_lock)
             else:
                 return lock_count(alarm_lock)
-        else:
-            return lock_count(alarm_lock)
+    else:
+        logger.warning('Send audio result is None - maybe network error')
+        return lock_count(alarm_lock)
             
 
 if __name__ == '__main__':

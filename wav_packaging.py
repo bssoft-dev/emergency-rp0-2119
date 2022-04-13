@@ -61,7 +61,9 @@ async def process(filename, alarm_lock):
                     # Play the alarm sound
                     subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
                             config['smartbell']['alarm_wav']])
-                    alarm_lock = config['smartbell']['alarm_duration'] # make alarm-lock
+                    # Lock the alarm for alarm_duration.
+                    # Alarm itself makes scream event now, so we need to add sending_record_seconds
+                    alarm_lock = config['smartbell']['alarm_duration'] + config['files']['sending_record_seconds']
                     return alarm_lock
                 else:
                     return lock_count(alarm_lock)

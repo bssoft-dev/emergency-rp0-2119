@@ -4,23 +4,30 @@ echo "smartbell_mon.sh is started"
 date
 export GW_IP=`ip route show | sed 's/\(\S\+\s\+\)\?default via \(\S\+\).*/\2/p; d'`
 echo "Gateway IP is $GW_IP"
+if [ ${#GW_IP} -lt 7 ] #If gateway ip was not received properly
+then
+  echo "Could not find gateway"
+  date
+  sudo reboot
+fi
+export GW_HEAD_IP=${GW_IP:0:6}
 
 # Check smartbell program status
 sleep 1
 export PROG_STATUS=`ps -ef | grep python | grep -v grep | wc -l`
-if [ $PROG_STATUS = 0 ] # If program is not started properly
+if [ $PROG_STATUS = 0 ]
 then
   echo "Program is not started properly. Rebooting..."
+  date
   sudo reboot
 fi
 
 # Main loop - Network, program monitoring
 while true
 do
-#  export NET_STATUS=`ping -c 1 $GW_IP &> /dev/null && echo 1 || echo 0` 
-  export NET_STATUS=`systemctl is-active ssh.service` 
-#  if [ $NET_STATUS = 0 ] # If ping is unreachable 
-  if [ $NET_STATUS != "active" ] #network service might be inactive 
+#  export NET_STATUS=`ping -c 1 $HOST &> /dev/null && echo 1 || echo 0` 
+  export NET_STATUS=`ifconfig | grep $GW_HEAD_IP &> /dev/null && echo 1 || echo 0`
+  if [ $NET_STATUS = 0 ] # If my ip is unknown 
   then
     echo "Network connection is unstable. Rebooting..."
     date

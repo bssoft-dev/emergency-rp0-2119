@@ -1,7 +1,6 @@
 #### my settings ####
-log*
+# log*
 sound/
-logs/
 monlog*
 id.txt
 ####### .gitignore for python #########

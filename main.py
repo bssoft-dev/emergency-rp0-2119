@@ -36,6 +36,11 @@ async def button_callback(asyncState):
         if not (state): # button is pressed
             logger.info('Button Pressed')
             baseUrl = config['smartbell']['alarm_url']
+            # Play the alarm sound
+            subprocess.Popen(['pkill', '-f', 'aplay'])
+            await sleep(0.1)
+            subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
+                config['smartbell']['alarm_wav']])
             # Light the LED
             subprocess.Popen(['pkill', '-f', 'light'])
             await sleep(0.1)
@@ -46,11 +51,6 @@ async def button_callback(asyncState):
                     await session.post('%s/%s'%(baseUrl,deviceId), json={'type':'button'})
                 except Exception as e:
                     logger.warning('Send Button Event - %s'%e)
-            # Play the alarm sound
-            subprocess.Popen(['pkill', '-f', 'aplay'])
-            await sleep(0.1)
-            subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
-                config['smartbell']['alarm_wav']])
             lock_count(asyncState, lock=True)
         await sleep(0.1)
 

@@ -1,9 +1,9 @@
 #### my settings ####
-log*
-sound/
-logs/
-monlog.*
-id.txt
+#log*
+#sound/
+#logs/
+#monlog*
+#id.txt
 ####### .gitignore for python #########
 # Byte-compiled / optimized / DLL files
 __pycache__/

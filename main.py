@@ -1,5 +1,4 @@
 import pyaudio, alsaaudio
-import _thread
 import os, subprocess
 import asyncio
 from asyncio import sleep
@@ -11,6 +10,8 @@ import wav_packaging
 
 import RPi.GPIO as GPIO
 
+
+
 BUTTON = 17
 
 GPIO.setmode(GPIO.BCM)
@@ -19,7 +20,17 @@ nBundle = config['files']['num_sending_bundle']
 num_record_frames = config['audio']['num_frame']*nBundle
 gRecord_frames = [b'']*num_record_frames # Initialize num_record_frames length empty byte array
 
-async def button_callback():
+def lock_count(asyncState, lock=False):
+# scream result by alarm sound will be ignored with this locking mechanism
+    if lock:
+        asyncState.alarm_lock = int(config['smartbell']['alarm_duration']) + config['files']['sending_record_seconds']
+    elif asyncState.alarm_lock == 0:
+        pass
+    else:
+        count = asyncState.alarm_lock - 1
+        asyncState.alarm_lock = count
+
+async def button_callback(asyncState):
     while True:
         state = GPIO.input(BUTTON)
         if not (state): # button is pressed
@@ -40,6 +51,7 @@ async def button_callback():
             await sleep(0.1)
             subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
                 config['smartbell']['alarm_wav']])
+            lock_count(asyncState, lock=True)
         await sleep(0.1)
 
 async def heartbeat():
@@ -56,11 +68,10 @@ def record_callback(in_data, frame_count, time_info, status):
     del gRecord_frames[0]
     return (in_data, pyaudio.paContinue)    
 
-async def audio_process(stream):
+async def audio_process(stream, asyncState):
     nfile = 0
     isSend = False
     count = 0
-    alarm_lock = 0
     while(True):
         try:
             logger.debug(count)
@@ -72,7 +83,7 @@ async def audio_process(stream):
             if isSend:
                 filename = '%s/%s-%d.wav'%(config['files']['sound_dir'], deviceId, nfile)
                 wav_packaging.makeWavFile(filename, audioSampleSize, gRecord_frames)
-                alarm_lock = await wav_packaging.process(filename, alarm_lock)
+                await wav_packaging.process(filename, asyncState)
             stream.start_stream()
             # Record sound with duration of config['audio']['record_seconds']
             await sleep(config['audio']['record_seconds'])
@@ -85,7 +96,10 @@ async def audio_process(stream):
             quit()
 
 async def coroutin_main(stream):
-    await asyncio.gather(heartbeat(), button_callback(), audio_process(stream))
+    # Setup an object to use like a global variable in asyncios
+    asyncState = type('', (), {})()
+    asyncState.alarm_lock = 0
+    await asyncio.gather(heartbeat(), button_callback(asyncState), audio_process(stream, asyncState))
 
 if __name__ == '__main__':
     # Log starting

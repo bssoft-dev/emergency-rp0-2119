@@ -34,7 +34,7 @@ def lock_count(alarm_lock):
     if alarm_lock == 0:
         return 0
     else:
-        alarm_lock = int(alarm_lock) - 1
+        alarm_lock = alarm_lock - 1
         return alarm_lock
 
 async def process(filename, alarm_lock):
@@ -63,7 +63,7 @@ async def process(filename, alarm_lock):
                             config['smartbell']['alarm_wav']])
                     # Lock the alarm for alarm_duration.
                     # Alarm itself makes scream event now, so we need to add sending_record_seconds
-                    alarm_lock = config['smartbell']['alarm_duration'] + config['files']['sending_record_seconds']
+                    alarm_lock = int(config['smartbell']['alarm_duration']) + config['files']['sending_record_seconds']
                     return alarm_lock
                 else:
                     return lock_count(alarm_lock)

@@ -24,7 +24,8 @@ async def send_wav(filename):
                         open(filename, 'rb'),
                         filename=filename.split('/')[-1],
                         content_type='audio/wav')
-            res = await session.post(config['files']['send_url'], data=data)
+            res = await session.post('%s?threshold=%s'%(config['files']['send_url'],
+                            config['smartbell']['detect_threshold']), data=data)
             return res
         except Exception as e:
             logger.warning('Send audio - %s'%e)

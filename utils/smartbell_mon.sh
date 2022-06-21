@@ -13,7 +13,6 @@ fi
 export GW_HEAD_IP=${GW_IP:0:6}
 
 # Check smartbell program status
-sleep 1
 export PROG_STATUS=`ps -ef | grep python | grep -v grep | wc -l`
 if [ $PROG_STATUS = 0 ]
 then

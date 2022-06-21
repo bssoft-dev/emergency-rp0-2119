@@ -1,3 +1,4 @@
+# sudo apt-get install libportaudio2 libasound2 python3-pyaudio
 pyaudio
 RPi.GPIO
 spidev

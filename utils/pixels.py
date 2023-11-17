@@ -142,10 +142,10 @@ def welcome_light():
     time.sleep(3)
     pixels.speak()
     time.sleep(3)
-    # pixels.off()
-    # time.sleep(3)
-    # pixels.off()
-    # time.sleep(1)
+    #pixels.off()
+    #time.sleep(3)
+    pixels.off()
+    time.sleep(1)
     pixels.stay()
 
 def alarm_light():

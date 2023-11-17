@@ -1,0 +1,26 @@
+[smartbell]
+volume = 100
+;스피커 볼륨조절 (최대 100)
+heartbeat_url = http://api-2207.bs-soft.co.kr/api/device
+heartbeat_interval = 5
+alarm_url = http://api-2207.bs-soft.co.kr/api/detections
+alarm_wav = /home/pi/emergency-rp0-2119/police-siren.wav
+alarm_duration = 5
+; 알람시간 (초)
+detect_threshold = 2
+
+[audio]
+chunk = 1024
+; format = pyaudio.paInt16
+channels = 1
+rate = 16000
+record_seconds = 6
+
+[files]
+num_save = 30
+sending_record_seconds = 12
+send_url = http://api-2035.bs-soft.co.kr/v3/upload-analysis/
+sound_dir = ./sound
+log_dir = ./logs
+log_level = INFO
+; log_level = <DEBUG|INFO|WARNING|ERROR|CRITICAL>

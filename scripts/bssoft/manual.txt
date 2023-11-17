@@ -1,0 +1,18 @@
+- wifi 세팅 방법
+
+wpa_supplicant.conf 파일을 메모장으로 열고 wifi 정보를 넣어준 다음 txt파일로 저장.
+저장된 파일을 boot 폴더에 붙여넣기.
+
+
+
+
+- 스피커 볼륨 설정방법
+
+smartbell_config.txt 파일을 열고 volume 숫자를 1~100으로 기입해서 설정.
+
+
+
+
+- 비상벨 알람 시간 설정방법
+
+smartbell_config.txt 파일을 열고 alarm_duration에 원하는 초로 기입.

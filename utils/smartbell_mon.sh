@@ -1,12 +1,13 @@
 #!/bin/bash
 echo "------------------------------------"
 echo "smartbell_mon.sh is started" 
+sleep 3
 date
 export GW_IP=`ip route show | sed 's/\(\S\+\s\+\)\?default via \(\S\+\).*/\2/p; d'`
 echo "Gateway IP is $GW_IP"
 if [ ${#GW_IP} -lt 7 ] #If gateway ip was not received properly
 then
-  echo "Could not find gateway"
+  echo "Could not find gateway. Rebooting..."
   date
   sudo reboot
 fi

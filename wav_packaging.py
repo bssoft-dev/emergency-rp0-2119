@@ -4,18 +4,7 @@ from utils.init import config, deviceId, logger
 import aiohttp
 from main import lock_count
 
-
-def makeWavFile(filename, audioSampleSize, frames):
-    wf = wave.open(filename, 'wb')
-    wf.setnchannels(config['audio']['channels'])
-    wf.setsampwidth(audioSampleSize)
-    wf.setframerate(config['audio']['rate'])
-    wf.writeframes(b''.join(frames))
-    wf.close()
-
 async def send_wav(filename):
-    # async with aiofiles.open(filename, 'rb') as sf:
-        # Send the wave file to the ML server
     timeout = aiohttp.ClientTimeout(total=10)
     async with aiohttp.ClientSession(timeout=timeout) as session:
         try:
@@ -31,15 +20,23 @@ async def send_wav(filename):
             logger.warning('Send audio - %s'%e)
             return None
 
-# def lock_count(alarm_lock):
-#     if alarm_lock == 0:
-#         return 0
-#     else:
-#         alarm_lock = alarm_lock - 1
-#         return alarm_lock
+async def send_raw_sound(sound, filename):
+    timeout = aiohttp.ClientTimeout(total=10)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        try:
+            data = aiohttp.FormData()
+            data.add_field('file',
+                        sound,
+                        filename=filename,
+                        content_type='audio/l16;rate=16000')
+            res = await session.post("http://api-2106.bs-soft.co.kr/v2/smartbell/1sec-analysis/", data=data)
+            return res
+        except Exception as e:
+            logger.warning('Send audio - %s'%e)
+            return None
 
-async def process(filename, asyncState):
-    res = await send_wav(filename)
+async def process(rawSound, filename, asyncState):
+    res = await send_raw_sound(rawSound, filename)
     if res is not None:
         if res.headers.get('content-type') != 'application/json':
              # contentent-type is not json but status 200 when the server is not work properly
@@ -65,14 +62,10 @@ async def process(filename, asyncState):
                             config['smartbell']['alarm_wav']])
                     # Lock the alarm for alarm_duration.
                     # Alarm itself makes scream event now, so we need to add sending_record_seconds
-                    # alarm_lock = int(config['smartbell']['alarm_duration']) + config['files']['sending_record_seconds']
                     lock_count(asyncState, lock=True)
-                    # return alarm_lock
                 else:
-                    # return lock_count()
                     lock_count(asyncState)
             else:
-                # return lock_count()
                 lock_count(asyncState)
     else:
         logger.warning('Send audio result is None - maybe network error')

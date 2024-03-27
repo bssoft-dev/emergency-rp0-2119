@@ -10,15 +10,14 @@ import wav_packaging
 
 import RPi.GPIO as GPIO
 
-
-
 BUTTON = 17
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON, GPIO.IN)
 nBundle = config['files']['num_sending_bundle']
-num_record_frames = config['audio']['num_frame']*nBundle
+num_record_frames = (config['audio']['num_frame']+1)*nBundle
 gRecord_frames = [b'']*num_record_frames # Initialize num_record_frames length empty byte array
+# gRecord_frames = b''
 
 def lock_count(asyncState, lock=False):
 # scream result by alarm sound will be ignored with this locking mechanism
@@ -66,6 +65,7 @@ async def heartbeat():
 def record_callback(in_data, frame_count, time_info, status):
     gRecord_frames.append(in_data)
     del gRecord_frames[0]
+    # gRecord_frames = in_data
     return (in_data, pyaudio.paContinue)    
 
 async def audio_process(stream, asyncState):
@@ -81,15 +81,12 @@ async def audio_process(stream, asyncState):
             # Record with non-blocking mode of pyaudio
             stream.stop_stream()
             if isSend:
-                filename = '%s/%s-%d.wav'%(config['files']['sound_dir'], deviceId, nfile)
-                wav_packaging.makeWavFile(filename, audioSampleSize, gRecord_frames)
-                await wav_packaging.process(filename, asyncState)
+                filename = f"{deviceId}-{nfile}.raw"
+                await wav_packaging.process(b''.join(gRecord_frames), filename, asyncState)
             stream.start_stream()
             # Record sound with duration of config['audio']['record_seconds']
             await sleep(config['audio']['record_seconds'])
             nfile += 1
-            if nfile == config['files']['num_save'] :
-                nfile = 0
         except KeyboardInterrupt:
             stream.stop_stream()
             stream.close()

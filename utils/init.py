@@ -33,7 +33,6 @@ config['audio']['chunk'] = int(config['audio']['chunk'])
 config['audio']['channels'] = int(config['audio']['channels'])
 config['audio']['rate'] = int(config['audio']['rate'])
 config['audio']['record_seconds'] = int(config['audio']['record_seconds'])
-config['files']['num_save'] = int(config['files']['num_save'])
 config['files']['sending_record_seconds'] = int(config['files']['sending_record_seconds'])
 config['smartbell']['heartbeat_interval'] = int(config['smartbell']['heartbeat_interval'])
 

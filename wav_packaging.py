@@ -13,8 +13,7 @@ async def send_wav(filename):
                         open(filename, 'rb'),
                         filename=filename.split('/')[-1],
                         content_type='audio/wav')
-            res = await session.post('%s?threshold=%s'%(config['files']['send_url'],
-                            config['smartbell']['detect_threshold']), data=data)
+            res = await session.post('http://api-2035.bs-soft.co.kr/v3/upload-analysis/', data=data)
             return res
         except Exception as e:
             logger.warning('Send audio - %s'%e)
@@ -29,7 +28,7 @@ async def send_raw_sound(sound, filename):
                         sound,
                         filename=filename,
                         content_type='audio/l16;rate=16000')
-            res = await session.post("http://api-2106.bs-soft.co.kr/v2/smartbell/1sec-analysis/", data=data)
+            res = await session.post(f"{config['files']['send_url']}?threshold={config['smartbell']['detect_threshold']}", data=data)
             return res
         except Exception as e:
             logger.warning('Send audio - %s'%e)

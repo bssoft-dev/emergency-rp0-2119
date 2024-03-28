@@ -32,14 +32,8 @@ config = {s:dict(p_config.items(s)) for s in p_config.sections()}
 config['audio']['chunk'] = int(config['audio']['chunk'])
 config['audio']['channels'] = int(config['audio']['channels'])
 config['audio']['rate'] = int(config['audio']['rate'])
-config['audio']['record_seconds'] = int(config['audio']['record_seconds'])
 config['files']['sending_record_seconds'] = int(config['files']['sending_record_seconds'])
 config['smartbell']['heartbeat_interval'] = int(config['smartbell']['heartbeat_interval'])
-
-# Calculate number of frames for one single chunk
-config['audio']['num_frame'] = int(config['audio']['rate'] / config['audio']['chunk'] * config['audio']['record_seconds'])
-# Calculate number of chunks for one single file
-config['files']['num_sending_bundle'] = int(config['files']['sending_record_seconds']//config['audio']['record_seconds'])
 
 # Set logger
 logger = Logger(name='smartbell', logdir=config['files']['log_dir'], level=config['files']['log_level'])

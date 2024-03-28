@@ -3,6 +3,7 @@ import os, subprocess
 import asyncio
 from asyncio import sleep
 import aiohttp
+from queue import Queue
 
 from utils.init import config, deviceId, print_settings, logger
 from utils.alsahandle import noalsaerr
@@ -14,10 +15,7 @@ BUTTON = 17
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON, GPIO.IN)
-nBundle = config['files']['num_sending_bundle']
-num_record_frames = (config['audio']['num_frame']+1)*nBundle
-gRecord_frames = [b'']*num_record_frames # Initialize num_record_frames length empty byte array
-# gRecord_frames = b''
+gRecord_frames = Queue()
 
 def alarm_state(asyncState):
     if asyncState.alarm_lock == 0:
@@ -69,12 +67,12 @@ async def heartbeat():
         await sleep(config['smartbell']['heartbeat_interval'])
 
 def record_callback(in_data, frame_count, time_info, status):
-    gRecord_frames.append(in_data)
-    del gRecord_frames[0]
-    # gRecord_frames = in_data
+    global gRecord_frames
+    gRecord_frames.put(in_data)
     return (in_data, pyaudio.paContinue)    
 
 async def audio_process(stream, asyncState):
+    global gRecord_frames
     nfile = 0
     isSend = False
     count = 0
@@ -82,16 +80,16 @@ async def audio_process(stream, asyncState):
         try:
             logger.debug(count)
             count += 1
-            if (isSend==False) and (nfile == nBundle-1):
-                isSend = True
-            # Record with non-blocking mode of pyaudio
-            stream.stop_stream()
             if isSend:
                 filename = f"{deviceId}-{nfile}.raw"
-                await wav_packaging.process(b''.join(gRecord_frames), filename, asyncState)
-            stream.start_stream()
-            # Record sound with duration of config['audio']['record_seconds']
-            await sleep(config['audio']['record_seconds'])
+                audios = [gRecord_frames.get() for _ in range(gRecord_frames.qsize())] 
+                await wav_packaging.process(b''.join(audios), filename, asyncState)
+            if count == 1:
+                # Record with non-blocking mode of pyaudio
+                stream.start_stream()
+                isSend = True
+            # Record sound with duration of config['audio']['sending_record_seconds']
+            await sleep(config['files']['sending_record_seconds'])
             nfile += 1
         except KeyboardInterrupt:
             stream.stop_stream()
@@ -123,7 +121,7 @@ if __name__ == '__main__':
     os.makedirs(config['files']['sound_dir'], exist_ok=True)
         
     # Set Alarm Volume
-    m = alsaaudio.Mixer(control='Playback', cardindex=1)
+    m = alsaaudio.Mixer(control='Playback', cardindex=3)
     m.setvolume(int(config['smartbell']['volume'])) # Set the volume to custom value
     # current_volume = m.getvolume() # Get the current Volume
 

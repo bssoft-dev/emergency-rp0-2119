@@ -121,7 +121,7 @@ if __name__ == '__main__':
     os.makedirs(config['files']['sound_dir'], exist_ok=True)
         
     # Set Alarm Volume
-    m = alsaaudio.Mixer(control='Playback', cardindex=3)
+    m = alsaaudio.Mixer(control='Playback', cardindex=1)
     m.setvolume(int(config['smartbell']['volume'])) # Set the volume to custom value
     # current_volume = m.getvolume() # Get the current Volume
 

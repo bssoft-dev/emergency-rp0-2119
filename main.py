@@ -19,6 +19,12 @@ num_record_frames = (config['audio']['num_frame']+1)*nBundle
 gRecord_frames = [b'']*num_record_frames # Initialize num_record_frames length empty byte array
 # gRecord_frames = b''
 
+def alarm_state(asyncState):
+    if asyncState.alarm_lock == 0:
+        return False
+    else:
+        return True
+
 def lock_count(asyncState, lock=False):
 # scream result by alarm sound will be ignored with this locking mechanism
     if lock:

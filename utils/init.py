@@ -1,6 +1,7 @@
 import configparser
 import os, subprocess
 from utils.setLogger import Logger
+from utils.soundcard import find_card_by_name
 from time import time
 
 def print_settings(config, deviceId):
@@ -34,6 +35,13 @@ config['audio']['channels'] = int(config['audio']['channels'])
 config['audio']['rate'] = int(config['audio']['rate'])
 config['files']['sending_record_seconds'] = int(config['files']['sending_record_seconds'])
 config['smartbell']['heartbeat_interval'] = int(config['smartbell']['heartbeat_interval'])
+
+# add cardnumber to config
+card_n = find_card_by_name('wm8960-soundcard')
+if card_n == -1:
+    card_n = find_card_by_name('seeed-2mic-voicecard')
+assert card_n != -1, 'Could not find proper audio card'
+config['smartbell']['cardnumber'] = card_n
 
 # Set logger
 logger = Logger(name='smartbell', logdir=config['files']['log_dir'], level=config['files']['log_level'])

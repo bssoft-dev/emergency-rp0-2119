@@ -58,7 +58,7 @@ async def process(rawSound, filename, asyncState):
                     except Exception as e:
                         logger.warning('Send Scream Event - %s'%e)
                 # Play the alarm sound
-                subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
+                subprocess.Popen(['aplay', '-D', f'plughw:{config["smartbell"]["cardnumber"]},0', '-d', config['smartbell']['alarm_duration'] ,
                         config['smartbell']['alarm_wav']])
                 # Lock the alarm for alarm_duration.
                 lock_count(asyncState, lock=True)

@@ -42,7 +42,7 @@ async def button_callback(asyncState):
             # Play the alarm sound
             subprocess.Popen(['pkill', '-f', 'aplay'])
             await sleep(0.1)
-            subprocess.Popen(['aplay', '-D', 'plughw:1,0', '-d', config['smartbell']['alarm_duration'] ,
+            subprocess.Popen(['aplay', '-D', f'plughw:{config["smartbell"]["cardnumber"]},0', '-d', config['smartbell']['alarm_duration'] ,
                 config['smartbell']['alarm_wav']])
             # Light the LED
             subprocess.Popen(['pkill', '-f', 'light'])

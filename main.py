@@ -100,6 +100,7 @@ async def coroutin_main(stream):
     # Setup an object to use like a global variable in asyncios
     asyncState = type('', (), {})()
     asyncState.alarm_lock = 0
+    asyncState.network = True
     await asyncio.gather(heartbeat(), button_callback(asyncState), audio_process(stream, asyncState))
 
 if __name__ == '__main__':

@@ -134,6 +134,9 @@ class Pixels:
     def stay(self):
         self.write([0, 0, 500, 0, 0, 500, 0, 0, 500])
 
+    def warn(self):
+        self.write([500, 0, 0, 500, 0, 0, 500, 0, 500])
+
 def welcome_light():
     pixels = Pixels()
     pixels.wakeup()
@@ -160,6 +163,14 @@ def alarm_light():
     # time.sleep(1)
     pixels.stay()
 
+def turn_red():
+    pixels = Pixels()
+    pixels.warn()
+
+def turn_blue():
+    pixels = Pixels()
+    pixels.stay()
+
 if __name__ == '__main__':
     if sys.argv[1] == 'welcome_light':
         welcome_light()
@@ -167,3 +178,7 @@ if __name__ == '__main__':
         alarm_light()
     elif sys.argv[1] == 'alarm_lock_light':
         alarm_lock_light()
+    elif sys.argv[1] == 'turn_red':
+        turn_red()
+    elif sys.argv[1] == 'turn_blue':
+        turn_blue()

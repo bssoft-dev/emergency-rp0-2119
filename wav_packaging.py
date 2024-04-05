@@ -45,6 +45,9 @@ async def process(rawSound, filename, asyncState):
              # contentent-type is not json but status 200 when the server is not work properly
             logger.warning('Send audio - %s'%res)
         else:
+            if asyncState.network != True:
+                subprocess.Popen(['python3', 'utils/pixels.py', 'turn_blue'])
+                asyncState.network = True
             event_res = await res.json()
             if (event_res['result'] == 'scream'):
                 logger.info('Scream Detected!')
@@ -63,6 +66,9 @@ async def process(rawSound, filename, asyncState):
                 # Lock the alarm for alarm_duration.
                 lock_count(asyncState, lock=True)
     else:
+        if asyncState.network:
+            subprocess.Popen(['python3', 'utils/pixels.py', 'turn_red'])
+            asyncState.network = False
         logger.warning('Send audio result is None - maybe network error')
             
 

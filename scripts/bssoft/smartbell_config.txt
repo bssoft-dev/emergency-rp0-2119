@@ -4,7 +4,7 @@ name = smartbell
 device = cm4
 
 [smartbell]
-volume = 70
+volume = 100
 ;스피커 볼륨조절 (최대 100)
 heartbeat_url = http://api-2207.bs-soft.co.kr/api/device
 heartbeat_interval = 5

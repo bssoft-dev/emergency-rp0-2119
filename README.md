@@ -17,7 +17,7 @@
 2. 사용자 설정 - /boot/bssoft/ 폴더의 id.txt와 smartbell_config.txt를 이용하여 기기 아이디와 각종 설정 변경 가능  
     (id.txt 파일이 있으면 해당 파일 내 텍스트를 deviceId로 인식하며, 파일이 없으면 unix time 기반으로 아이디를 만들고 id.txt를 생성함)  
 3. USB 무선랜으로 iptime N150UA 이용 가능
-4. 녹음 및 재생 보드로 Seeed의 ReSpeaker 2-Mics Pi HAT 이용
+4. 녹음 및 음원 감지, 재생 보드로 Jetson Orin Nano(NX) 이용
 
 ## 메인 프로그램
 - heartbeat와 button-check, audio-record-and-send 세가지 함수를 coroutine으로 만들어 main함수에서 gather로 실행
